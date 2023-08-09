@@ -6,7 +6,6 @@
 //qtr
 extern const int setPoint;
 extern const int SensorCount;
-extern int rawReadings[];
 
 //LED
 extern const int red;
@@ -32,6 +31,8 @@ extern const int rightEncoderPins[];
 
 extern unsigned volatile long leftEncoder;
 extern unsigned volatile long rightEncoder;
+extern unsigned volatile long tempLeftEncoder;
+extern unsigned volatile long tempRightEncoder;
 extern unsigned long encoderLeftCount;
 extern unsigned long encoderRightCount;
 
@@ -39,7 +40,8 @@ extern unsigned long encoderRightCount;
 extern int rightBase;
 extern int leftBase;
 extern int correctionMax;
-extern int maxSpeed;
+extern int leftMaxSpeed;
+extern int rightMaxSpeed;
 
 extern int turnRightBase;
 extern int turnLeftBase;

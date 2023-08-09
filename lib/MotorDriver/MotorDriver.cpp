@@ -139,19 +139,19 @@ void MotorDriver::applyLinePid(int correction){
 
 
     if (leftSpeed < 0){
-    leftSpeed = 0;
+        leftSpeed = 0;
     }
 
     if (rightSpeed < 0){
-    rightSpeed = 0;
+        rightSpeed = 0;
     }
 
-    if (leftSpeed >= maxSpeed){
-    leftSpeed = maxSpeed;
+    if (leftSpeed >= leftMaxSpeed){
+        leftSpeed = leftMaxSpeed;
     }
 
-    if (rightSpeed >= maxSpeed){
-    rightSpeed = maxSpeed;
+    if (rightSpeed >= rightMaxSpeed){
+        rightSpeed = rightMaxSpeed;
     }
 
     leftBase >= 0 ? forward(leftSpeed, rightSpeed) : backward(rightSpeed, leftSpeed);

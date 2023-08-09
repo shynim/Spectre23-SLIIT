@@ -4,108 +4,123 @@
 #include <Variables.h>
 #include <MotorDriver.h>
 #include <PID.h>
+#include <SensorPanel.h>
 
-QTRSensors qtr;
+SensorPanel qtr(const_cast<uint8_t *>((const uint8_t[]) {33, 34, 35, 36, 37, 38, 39, 40, 42, 43, 44, 45, 46, 47, 48, 49}));
 MotorDriver driver;
 PID pid;
 
-uint16_t sensorValues[16];
-
 void calibrate();
-int getErr();
 
-void printTuple(int a, int b)
-{
-  Serial.print(a);
-  Serial.print("\t");
-  Serial.println(b);
+void goStraight(){
+
+    int errEncoder = leftEncoder - rightEncoder;
+    int correction = pid.getEncoderCorrection(errEncoder);
+    driver.applyEncoderPid(correction);
+
+    //driver.forward(sonicLeftBase,sonicRightBase);
 }
 
 void calibrate(){
     
   digitalWrite(LED_BUILTIN, HIGH);
 
-  /*leftForward(1);
-  rightBackward(1);
-  for (uint16_t i = 0; i < 50; i++)
-  {
-    // analogWrite(leftPWM, 100);
-    // analogWrite(rightPWM, 100);
+  driver.turnLeft(100,100);
+  for (uint16_t i = 0; i < 50; i++){
     qtr.calibrate();
   }
 
-  leftBackward(1);
-  rightForward(1);
+  driver.turnRight(100,100);
 
-  for (uint16_t i = 0; i < 55; i++)
-  {
-    // analogWrite(leftPWM, 100);
-    // analogWrite(rightPWM, 100);
+  for (uint16_t i = 0; i < 50; i++){
     qtr.calibrate();
   }
-*/
 
-    digitalWrite(LED_BUILTIN, LOW);
-    driver.stop();
+  digitalWrite(LED_BUILTIN, LOW);
+  driver.stop();
 
-    qtr.calibrate();
-    for (int i = 0; i < SensorCount; i++){
-        qtr.calibrationOn.minimum[i] = 50;
-        qtr.calibrationOn.maximum[i] = 2500;
-    }
+
+  // qtr.calibrate();
+  // for (int i = 0; i < SensorCount; i++){
+  //     qtr.calibrationOn.minimum[i] = 50;
+  //     qtr.calibrationOn.maximum[i] = 2500;
+  // }
   
 }
 
-int getErr(){
+void cellStart(){
+    encoderLeftCount = 0;
+    encoderRightCount = 0;
+    leftEncoder = 0;
+    rightEncoder = 0;
 
-    int position = qtr.readLineBlack(sensorValues);
-    int err = (int)position - 7500;
+    encoderRightCount = encoderRightCount + 200;
+    encoderLeftCount = encoderLeftCount + 200;
 
-    for (int i = 0; i < SensorCount; i++)
-    {
-        Serial.print(sensorValues[i]);
-        Serial.print(" ");
-        rawReadings[i] = sensorValues[i];
-        sensorValues[i] = sensorValues[i] > 700 ? 1 : 0;
+    while (rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
+        int dif = leftEncoder - encoderLeftCount + 200;
+        rightBase = (rightBase - 20) + int(dif/(200/20));
+        leftBase = (leftBase - 20) + int(dif/(200/20));
+        goStraight();
     }
-    Serial.println();
-    return err;
+
 }
 
-// void pid(int err)
-// {
+void cellBrake(){
 
-//   totalErr += err;
+    encoderLeftCount = 0;
+    encoderRightCount = 0;
+    leftEncoder = 0;
+    rightEncoder = 0;
+    
+    encoderRightCount = encoderRightCount + 150;
+    encoderLeftCount = encoderLeftCount + 150;
 
-//   int correction = (int)(Kp * err + Ki * totalErr + Kd * (err-prevErr));
-//   prevErr = err;
+    while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
+        int dif = leftEncoder - encoderLeftCount + 150;
+        rightBase = rightBase - int(dif/7.5);
+        leftBase = leftBase - int(dif/7.5);
+        goStraight();
 
-//   int leftSpeed = baseSpeed + correction;
-//   int rightSpeed = baseSpeed - correction;
+    }
 
-//   if (leftSpeed < 0)
-//   {
-//     leftSpeed = 0;
-//   }
+    leftBase = 95;
+    rightBase = 95;
+    driver.stop();
+    
+}
 
-//   if (rightSpeed < 0)
-//   {
-//     rightSpeed = 0;
-//   }
+void pushForward(int distance){
+    encoderLeftCount = 0;
+    encoderRightCount = 0;
+    leftEncoder = 0;
+    rightEncoder = 0;
+    
+    encoderRightCount = encoderRightCount + distance;
+    encoderLeftCount = encoderLeftCount + distance;
 
-//   if (leftSpeed >= maxSpeed)
-//   {
-//     leftSpeed = maxSpeed;
-//   }
+    while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
+        goStraight();
 
-//   if (rightSpeed >= maxSpeed)
-//   {
-//     rightSpeed = maxSpeed;
-//   }
+    }
 
-//    rightForward(rightSpeed);
-//    leftForward(leftSpeed);
-// }
+}
+
+void turnRightTillMiddle(){
+    qtr.read();
+    while(qtr.panelReading[6] != 1){
+        driver.turnRight(leftBase,rightBase);
+        qtr.read();
+    }
+}
+
+void turnLeftTillMiddle(){
+    qtr.read();
+    while(qtr.panelReading[9] != 1){
+        driver.turnLeft(leftBase,rightBase);
+        qtr.read();
+    }
+}
 
 void countLeftOut1(){
     leftEncoder += 1;
@@ -146,20 +161,123 @@ void setup(){
 
     pinMode(LED_BUILTIN,OUTPUT);
 
-    qtr.setTypeRC();
-    qtr.setSensorPins((const uint8_t[]){33, 34, 35, 36, 37, 38, 39, 40, 42, 43, 44, 45, 46, 47, 48, 49}, SensorCount);
-
     Serial.begin(9600);
 
     calibrate();
-
+    driver.stop();
+    delay(3000);
 }
+
+void BotLoop() {
+    while (true) {
+        qtr.read();
+
+        if (qtr.pattern == 1) { //pid
+            int correction = pid.getLineCorrection(qtr.error);
+            driver.applyLinePid(correction * -1);
+        } else {
+            char pattern = qtr.pattern;
+            bool left = pattern == 'L';
+            bool right = pattern == 'R';
+            bool t = pattern == 'T';
+
+            bool yLeft = false;
+            bool yRight = false;
+
+            int pushDistance = 210 - (leftEncoder - tempLeftEncoder);
+
+            encoderLeftCount = 0;
+            encoderRightCount = 0;
+            leftEncoder = 0;
+            rightEncoder = 0;
+            
+            encoderRightCount = encoderRightCount + 100;
+            encoderLeftCount = encoderLeftCount + 100;
+
+            int tCount = 0;
+            while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
+                goStraight();
+                qtr.read();
+                if (qtr.pattern == 'L') {
+                    left = true;
+                } else if (qtr.pattern == 'R') {
+                    right = true;
+                } else if (qtr.pattern == 'T') {
+                    t = true;
+                    tCount++;
+                }
+
+                for(int i = 0; i <= 4; i++){
+                    if(qtr.panelReading[i] == 1){
+                        yRight = true;
+                    }
+                    if(qtr.panelReading[15 - i] == 1){
+                        yLeft = true;
+                    
+                    }
+                }
+            }
+
+            encoderLeftCount = 0;
+            encoderRightCount = 0;
+            leftEncoder = 0;
+            rightEncoder = 0;
+            
+            encoderRightCount = encoderRightCount + pushDistance;
+            encoderLeftCount = encoderLeftCount + pushDistance;
+
+            while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
+                goStraight();
+            }
+
+            if (t || (left && right)) {
+                pattern = 'T';
+            } else if (left || yLeft) {
+                pattern = 'L';
+            } else if (right || yRight) {
+                pattern = 'R';
+            } else {
+                pattern = 0;
+            }
+            driver.stop();
+            
+            qtr.read();
+            char newPattern = qtr.pattern;
+
+            switch (pattern) {
+                case 'L':
+                    turnLeftTillMiddle();
+                    break;
+
+                case 'R':
+                    if (newPattern == 1) {
+                        
+                    } else {
+                        turnRightTillMiddle();
+                    }
+                    break;
+
+                case 'T':
+                    turnLeftTillMiddle();
+
+                default:
+                    turnRightTillMiddle();
+            }
+            driver.stop();
+
+        }
+    }
+}
+
 
 void loop(){
 
-    int err = getErr();
-    int correction = pid.getLineCorrection(err);
+//   qtr.read();
 
-    driver.applyLinePid(correction * -1);
+//   int correction = pid.getLineCorrection(qtr.error);
+//   driver.applyLinePid(correction * -1);
 
+    BotLoop();
+  //driver.forward(95,95);
+  //driver.forward(180,170);
 }

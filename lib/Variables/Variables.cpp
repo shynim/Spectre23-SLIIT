@@ -1,9 +1,8 @@
 #include <Variables.h>
 
 //qtr
-const int setPoint = 7500;
+const int setPoint = 8000;
 const int SensorCount = 16;
-int rawReadings[SensorCount];
 
 //LED
 const int red = 36;
@@ -29,14 +28,17 @@ const int rightEncoderPins[] = {18,19};
 
 unsigned volatile long leftEncoder = 0;
 unsigned volatile long rightEncoder = 0;
+unsigned volatile long tempLeftEncoder = 0;
+unsigned volatile long tempRightEncoder = 0;
 unsigned long encoderLeftCount = 0;
 unsigned long encoderRightCount = 0;
 
 //Speeds
-int rightBase = 100;
-int leftBase = 110;
+int rightBase = 95;
+int leftBase = 95;
 int correctionMax = 40;
-int maxSpeed = 180;
+int rightMaxSpeed = 170;
+int leftMaxSpeed = 180;
 
 int turnRightBase = 160;
 int turnLeftBase = 120;
@@ -51,9 +53,9 @@ const double eP = 0.4;
 const double eI = 0;
 const double eD = 2;
 
-const double P = 0.05;
-const double D = 0.1;
-const double I = 0; //.001;
+const double P = 0.0175;
+const double D = 0.0285;
+const double I = 0.00065; //.001;
 
 
 
