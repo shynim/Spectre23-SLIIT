@@ -1,6 +1,3 @@
-//
-// Created by lakshith on 8/8/22.
-//
 #include <QTRSensors.h>
 #include <Variables.h>
 

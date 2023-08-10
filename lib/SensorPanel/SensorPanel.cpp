@@ -1,4 +1,4 @@
-#include "SensorPanel.h"
+#include <SensorPanel.h>
 
 inline uint16_t abs(uint16_t a) {
     return a > 0 ? a : a * -1;
@@ -28,9 +28,9 @@ void SensorPanel::read() {
 
     error = (int) position - 8000;
 
-    for (int i = 0; i < SensorPanel::SensorCount; i++) {
+    for (int i = 0; i < SensorPanel::SensorCount; i++) {        
         rawReadings[i] = panelReading[i];
-        panelReading[i] = panelReading[i] > 700 ? 1 : 0;
+        panelReading[i] = panelReading[i] > 400 ? 1 : 0;
     }
 
     SensorPanel::updatePattern();
@@ -79,13 +79,13 @@ void SensorPanel::updatePattern() {
 
     if (sensorCount == 0) {
         SensorPanel::pattern = 0;
-    } else if (left && right && SensorPanel::isMiddle) {
+    }else if (left && right && SensorPanel::isMiddle) {
         SensorPanel::pattern = 'T';
-    } else if (left && SensorPanel::isMiddle) {
+    }else if (left && SensorPanel::isMiddle) {
         SensorPanel::pattern = 'L';
-    } else if (right && SensorPanel::isMiddle) {
+    }else if (right && SensorPanel::isMiddle) {
         SensorPanel::pattern = 'R';
-    } else if(junc){
+    }else if(junc){
         SensorPanel::pattern = 'Y';
     }else {
         SensorPanel::pattern = 1;

@@ -108,7 +108,7 @@ void pushForward(int distance){
 
 void turnRightTillMiddle(){
     qtr.read();
-    while(qtr.panelReading[6] != 1){
+    while(qtr.panelReading[5] != 1){
         driver.turnRight(leftBase,rightBase);
         qtr.read();
     }
@@ -116,10 +116,55 @@ void turnRightTillMiddle(){
 
 void turnLeftTillMiddle(){
     qtr.read();
-    while(qtr.panelReading[9] != 1){
+    while(qtr.panelReading[10] != 1){
         driver.turnLeft(leftBase,rightBase);
         qtr.read();
     }
+}
+
+void turnBack(){
+    encoderLeftCount = 0;
+    encoderRightCount = 0;
+    leftEncoder = 0;
+    rightEncoder = 0;
+    encoderRightCount= encoderRightCount + 100;
+    encoderLeftCount= encoderLeftCount + 100;
+    while (rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount)
+    {
+        int dif = leftEncoder - encoderLeftCount + 100;
+        turnRightBase = int(80+50/(1+pow(2.73,((50-dif)*0.05))));
+        turnLeftBase = int(80+50/(1+pow(2.73,((50-dif)*0.05))));
+        driver.turnRight(turnLeftBase, turnRightBase);
+
+    }
+    turnRightBase=160;
+    turnLeftBase=120;
+    encoderRightCount= encoderRightCount + 500;
+    encoderLeftCount= encoderLeftCount + 500;
+    while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount)
+    {
+        driver.turnRight(turnLeftBase, turnRightBase);
+
+    }
+    encoderRightCount= encoderRightCount + 100;
+    encoderLeftCount= encoderLeftCount + 100;
+    while (rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount)
+    {
+        int dif = leftEncoder - encoderLeftCount + 100;
+        turnRightBase = int(130-50/(1+pow(2.73,((50-dif)*0.05))));
+        turnLeftBase = int(130-50/(1+pow(2.73,((50-dif)*0.05))));
+        driver.turnRight(turnLeftBase, turnRightBase);
+
+    }
+    driver.brake();
+
+    turnLeftBase = 120;
+    turnRightBase = 160;
+    encoderLeftCount = 0;
+    encoderRightCount = 0;
+    leftEncoder = 0;
+    rightEncoder = 0;
+
 }
 
 void countLeftOut1(){
@@ -166,6 +211,7 @@ void setup(){
     calibrate();
     driver.stop();
     delay(3000);
+
 }
 
 void BotLoop() {
@@ -184,20 +230,23 @@ void BotLoop() {
             bool yLeft = false;
             bool yRight = false;
 
-            int pushDistance = 210 - (leftEncoder - tempLeftEncoder);
+            int pushDistance = 100 - (leftEncoder - tempLeftEncoder);
 
             encoderLeftCount = 0;
             encoderRightCount = 0;
             leftEncoder = 0;
             rightEncoder = 0;
             
-            encoderRightCount = encoderRightCount + 100;
-            encoderLeftCount = encoderLeftCount + 100;
+            encoderRightCount = encoderRightCount + 150;
+            encoderLeftCount = encoderLeftCount + 150;
 
             int tCount = 0;
             while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
+                
                 goStraight();
+
                 qtr.read();
+                
                 if (qtr.pattern == 'L') {
                     left = true;
                 } else if (qtr.pattern == 'R') {
@@ -207,7 +256,7 @@ void BotLoop() {
                     tCount++;
                 }
 
-                for(int i = 0; i <= 4; i++){
+                for(int i = 0; i <= 5; i++){
                     if(qtr.panelReading[i] == 1){
                         yRight = true;
                     }
@@ -259,9 +308,11 @@ void BotLoop() {
 
                 case 'T':
                     turnLeftTillMiddle();
+                    break;
 
                 default:
-                    turnRightTillMiddle();
+                    turnBack();
+                    break;
             }
             driver.stop();
 
@@ -272,12 +323,19 @@ void BotLoop() {
 
 void loop(){
 
-//   qtr.read();
+//    qtr.read();
+//    for(int i = 0; i < SensorCount; i++){
+//     Serial.print(qtr.rawReadings[i]);
+//     Serial.print(" ");
+//    }
+//    Serial.println();
 
 //   int correction = pid.getLineCorrection(qtr.error);
 //   driver.applyLinePid(correction * -1);
 
     BotLoop();
-  //driver.forward(95,95);
-  //driver.forward(180,170);
+    // turnBack();
+    // delay(100000);
+    //driver.forward(95,95);
+
 }

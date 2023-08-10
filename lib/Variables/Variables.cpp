@@ -20,7 +20,7 @@ const int sensorOut = 52;
 const int leftPins[] = {6, 22, 23};
 const int rightPins[] = {7, 24, 25};
 
-int stopDelay = 100;
+int stopDelay = 0;
 
 //encoder
 const int leftEncoderPins[] = {2,3};
@@ -34,8 +34,8 @@ unsigned long encoderLeftCount = 0;
 unsigned long encoderRightCount = 0;
 
 //Speeds
-int rightBase = 95;
-int leftBase = 95;
+int rightBase = 105;
+int leftBase = 105;
 int correctionMax = 40;
 int rightMaxSpeed = 170;
 int leftMaxSpeed = 180;
