@@ -5,10 +5,13 @@
 #include <MotorDriver.h>
 #include <PID.h>
 #include <SensorPanel.h>
+#include <Arm.h>
 
 SensorPanel qtr(const_cast<uint8_t *>((const uint8_t[]) {33, 34, 35, 36, 37, 38, 39, 40, 42, 43, 44, 45, 46, 47, 48, 49}));
 MotorDriver driver;
 PID pid;
+Arm gripper(7);
+Arm arm(6);
 
 void calibrate();
 
@@ -83,7 +86,6 @@ void cellBrake(){
         goStraight();
 
     }
-
     leftBase = 95;
     rightBase = 95;
     driver.stop();
@@ -212,6 +214,9 @@ void setup(){
     driver.stop();
     delay(3000);
 
+    arm.write(140);
+    gripper.write(110);
+
 }
 
 void BotLoop() {
@@ -248,7 +253,7 @@ void BotLoop() {
                 qtr.read();
                 
                 if (qtr.pattern == 'L') {
-                    left = true;
+                    left = true; 
                 } else if (qtr.pattern == 'R') {
                     right = true;
                 } else if (qtr.pattern == 'T') {
@@ -333,9 +338,17 @@ void loop(){
 //   int correction = pid.getLineCorrection(qtr.error);
 //   driver.applyLinePid(correction * -1);
 
-    BotLoop();
+    //BotLoop();
     // turnBack();
     // delay(100000);
     //driver.forward(95,95);
 
-}
+    // delay(1000);
+    // arm.write(120);
+    // gripper.write(90);
+
+    // delay(1000);
+    // arm.write(50);
+    // gripper.write(110);
+    
+    }

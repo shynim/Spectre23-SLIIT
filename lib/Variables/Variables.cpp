@@ -17,8 +17,8 @@ const int S3 = 51;
 const int sensorOut = 52;
 
 //motorDriver
-const int leftPins[] = {6, 22, 23};
-const int rightPins[] = {7, 24, 25};
+const int leftPins[] = {4, 22, 23};
+const int rightPins[] = {5, 24, 25};
 
 int stopDelay = 0;
 
