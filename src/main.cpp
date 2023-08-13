@@ -10,8 +10,7 @@
 SensorPanel qtr(const_cast<uint8_t *>((const uint8_t[]) {33, 34, 35, 36, 37, 38, 39, 40, 42, 43, 44, 45, 46, 47, 48, 49}));
 MotorDriver driver;
 PID pid;
-Arm gripper(7);
-Arm arm(6);
+Arm arm;
 
 void calibrate();
 
@@ -178,6 +177,7 @@ void countRightOut1(){
 
 void setup(){
 
+    arm.init(6, 7);
     driver.init(const_cast<int *>(leftPins), const_cast<int *>(rightPins));
 
     pinMode(leftEncoderPins[0], INPUT);
@@ -214,8 +214,11 @@ void setup(){
     driver.stop();
     delay(3000);
 
-    arm.write(140);
-    gripper.write(110);
+    arm.attachGripper();
+    arm.attachArm();
+
+    arm.writeArm(140);
+    arm.writeGripper(110);
 
 }
 
@@ -343,12 +346,12 @@ void loop(){
     // delay(100000);
     //driver.forward(95,95);
 
-    // delay(1000);
-    // arm.write(120);
-    // gripper.write(90);
+    delay(1000);
+    arm.writeArm(120);
+    arm.writeGripper(90);
 
-    // delay(1000);
-    // arm.write(50);
-    // gripper.write(110);
+    delay(1000);
+    arm.writeArm(50);
+    arm.writeGripper(110);
     
     }

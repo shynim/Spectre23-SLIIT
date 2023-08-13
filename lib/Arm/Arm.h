@@ -2,15 +2,27 @@
 
 class Arm{
     public:
-        Arm(int pin);
+        void init(int aP, int gP);
 
-        void write(int angle);
+        void attachArm();
+        void detachArm();
+        void attachGripper();
+        void detachGripper();
+
+        void writeGripper(int angle);
+        void writeArm(int angle);
+
+        void spreadGripper();
         void grab();
     
         void armDown();
         void armUp();
 
     private:
-        Servo servo;
+        Servo arm;
+        Servo gripper;
+        
+        int armPin;
+        int gripperPin;
 
 };
