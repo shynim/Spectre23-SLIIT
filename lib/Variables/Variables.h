@@ -56,8 +56,8 @@ extern const double eP;
 extern const double eI;
 extern const double eD;
    
-extern const double P;    
-extern const double I;
-extern const double D;
+extern double P;    
+extern double I;
+extern double D;
 
 #endif //ROBOFEST2023_VARIABLES_H

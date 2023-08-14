@@ -22,12 +22,15 @@ public:
     void calibrate();
 
     void read();
+    void readWhite();
 
 private:
     QTRSensors qtr;
     const uint8_t SensorCount = 16;
 
     uint16_t readLine(uint16_t *sensorValues);
+    uint16_t readLineWhite(uint16_t *sensorValues);
+
 
     void updatePattern();
 };

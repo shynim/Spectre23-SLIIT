@@ -39,9 +39,9 @@ void Arm::grab(){
 }
 
 void Arm::armUp(){
-    arm.write(140);
+    arm.write(150);
 }
 
 void Arm::armDown(){
-    arm.write(50);
+    arm.write(28);
 }

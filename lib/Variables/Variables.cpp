@@ -34,14 +34,14 @@ unsigned long encoderLeftCount = 0;
 unsigned long encoderRightCount = 0;
 
 //Speeds
-int rightBase = 105;
-int leftBase = 105;
+int rightBase = 130;
+int leftBase = 140;
 int correctionMax = 40;
-int rightMaxSpeed = 170;
-int leftMaxSpeed = 180;
+int rightMaxSpeed = 200;
+int leftMaxSpeed = 210;
 
-int turnRightBase = 160;
-int turnLeftBase = 120;
+int turnRightBase = 180;
+int turnLeftBase = 180;
 
 //PID
 int totalLineError = 0;
@@ -53,9 +53,9 @@ const double eP = 0.4;
 const double eI = 0;
 const double eD = 2;
 
-const double P = 0.0175;
-const double D = 0.0285;
-const double I = 0.00065; //.001;
+double P = 0.03;
+double D = 0.065;
+double I = 0.00065; //.001;
 
 
 

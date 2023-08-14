@@ -23,6 +23,10 @@ uint16_t SensorPanel::readLine(uint16_t *sensorValues) {
     return SensorPanel::qtr.readLineBlack(sensorValues);
 }
 
+uint16_t SensorPanel::readLineWhite(uint16_t *sensorValues) {
+    return SensorPanel::qtr.readLineBlack(sensorValues);
+}
+
 void SensorPanel::read() {
     SensorPanel::position = SensorPanel::readLine(panelReading);
 
@@ -31,6 +35,19 @@ void SensorPanel::read() {
     for (int i = 0; i < SensorPanel::SensorCount; i++) {        
         rawReadings[i] = panelReading[i];
         panelReading[i] = panelReading[i] > 400 ? 1 : 0;
+    }
+
+    SensorPanel::updatePattern();
+}
+
+void SensorPanel::readWhite(){
+    SensorPanel::position = SensorPanel::readLine(panelReading);
+
+    error = (int) position - 8000;
+
+    for (int i = 0; i < SensorPanel::SensorCount; i++) {        
+        rawReadings[i] = panelReading[i];
+        panelReading[i] = panelReading[i] < 400 ? 1 : 0;
     }
 
     SensorPanel::updatePattern();
@@ -92,11 +109,11 @@ void SensorPanel::updatePattern() {
     }
 
     isEnd = true;
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 5; i++) {
         isEnd &= (panelReading[i] == 1) && (panelReading[15 - i] == 1);
     }
     int midWhiteCount = 0;
-    for (int i = 5; i <= 10; i++) {
+    for (int i = 6; i <= 9; i++) {
         midWhiteCount += panelReading[i] == 0 ? 1 : 0;
     }
     isEnd &= (midWhiteCount >= 1);

@@ -27,12 +27,12 @@ void calibrate(){
     
   digitalWrite(LED_BUILTIN, HIGH);
 
-  driver.turnLeft(100,100);
+  driver.turnLeft(150,150);
   for (uint16_t i = 0; i < 50; i++){
     qtr.calibrate();
   }
 
-  driver.turnRight(100,100);
+  driver.turnRight(150,150);
 
   for (uint16_t i = 0; i < 50; i++){
     qtr.calibrate();
@@ -133,15 +133,15 @@ void turnBack(){
     while (rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount)
     {
         int dif = leftEncoder - encoderLeftCount + 100;
-        turnRightBase = int(80+50/(1+pow(2.73,((50-dif)*0.05))));
-        turnLeftBase = int(80+50/(1+pow(2.73,((50-dif)*0.05))));
+        turnRightBase = int(130+50/(1+pow(2.73,((50-dif)*0.05))));
+        turnLeftBase = int(130+50/(1+pow(2.73,((50-dif)*0.05))));
         driver.turnRight(turnLeftBase, turnRightBase);
 
     }
-    turnRightBase=160;
-    turnLeftBase=120;
-    encoderRightCount= encoderRightCount + 500;
-    encoderLeftCount= encoderLeftCount + 500;
+    turnRightBase=180;
+    turnLeftBase=180;
+    encoderRightCount= encoderRightCount + 600;
+    encoderLeftCount= encoderLeftCount + 600;
     while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount)
     {
         driver.turnRight(turnLeftBase, turnRightBase);
@@ -152,15 +152,15 @@ void turnBack(){
     while (rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount)
     {
         int dif = leftEncoder - encoderLeftCount + 100;
-        turnRightBase = int(130-50/(1+pow(2.73,((50-dif)*0.05))));
-        turnLeftBase = int(130-50/(1+pow(2.73,((50-dif)*0.05))));
+        turnRightBase = int(180-50/(1+pow(2.73,((50-dif)*0.05))));
+        turnLeftBase = int(180-50/(1+pow(2.73,((50-dif)*0.05))));
         driver.turnRight(turnLeftBase, turnRightBase);
 
     }
     driver.brake();
 
-    turnLeftBase = 120;
-    turnRightBase = 160;
+    turnLeftBase = 180;
+    turnRightBase = 180;
     encoderLeftCount = 0;
     encoderRightCount = 0;
     leftEncoder = 0;
@@ -175,7 +175,7 @@ void countRightOut1(){
     rightEncoder += 1;
 }
 
-void setup(){
+void botSetup(){
 
     arm.init(6, 7);
     driver.init(const_cast<int *>(leftPins), const_cast<int *>(rightPins));
@@ -210,9 +210,15 @@ void setup(){
 
     Serial.begin(9600);
 
+    pinMode(53,OUTPUT);
+
     calibrate();
     driver.stop();
     delay(3000);
+
+    driver.forward(190, 170);
+    delay(200);
+    driver.stop();
 
     arm.attachGripper();
     arm.attachArm();
@@ -220,13 +226,16 @@ void setup(){
     arm.writeArm(140);
     arm.writeGripper(110);
 
+    arm.detachArm();
+    arm.detachGripper();
 }
 
-void BotLoop() {
+void botLoop() {
+
     while (true) {
         qtr.read();
 
-        if (qtr.pattern == 1) { //pid
+        if (qtr.pattern == 1) {
             int correction = pid.getLineCorrection(qtr.error);
             driver.applyLinePid(correction * -1);
         } else {
@@ -245,8 +254,8 @@ void BotLoop() {
             leftEncoder = 0;
             rightEncoder = 0;
             
-            encoderRightCount = encoderRightCount + 150;
-            encoderLeftCount = encoderLeftCount + 150;
+            encoderRightCount = encoderRightCount + 90;
+            encoderLeftCount = encoderLeftCount + 90;
 
             int tCount = 0;
             while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
@@ -272,6 +281,21 @@ void BotLoop() {
                         yLeft = true;
                     
                     }
+                }
+            }
+
+            if(qtr.isEnd){
+                while(true){
+                    qtr.readWhite();
+
+                    if (qtr.pattern == 1) { //pid
+                        int correction = pid.getLineCorrection(qtr.error);
+                        driver.applyLinePid(correction * -1);
+                    }else{
+                        driver.stop();
+                        delay(99999999999);
+                    }
+
                 }
             }
 
@@ -328,30 +352,46 @@ void BotLoop() {
     }
 }
 
+void setup(){
+
+    botSetup();
+    
+}
 
 void loop(){
 
-//    qtr.read();
-//    for(int i = 0; i < SensorCount; i++){
-//     Serial.print(qtr.rawReadings[i]);
-//     Serial.print(" ");
-//    }
-//    Serial.println();
+    while(!qtr.isEnd){
+        botLoop();
+    }
+    
+    while(true){
+        qtr.readWhite();
 
-//   int correction = pid.getLineCorrection(qtr.error);
-//   driver.applyLinePid(correction * -1);
+        if (qtr.pattern == 1) { 
+            int correction = pid.getLineCorrection(qtr.error);
+            driver.applyLinePid(correction * -1);
+        }else{
+            driver.stop();
+            delay(99999999999);
+        }
 
-    //BotLoop();
-    // turnBack();
-    // delay(100000);
-    //driver.forward(95,95);
+    }
 
-    delay(1000);
-    arm.writeArm(120);
-    arm.writeGripper(90);
+    // arm.attachArm();
+    // arm.armDown();
 
-    delay(1000);
-    arm.writeArm(50);
-    arm.writeGripper(110);
+    // delay(1000);
+
+    // arm.attachGripper();
+    // arm.spreadGripper();
+
+    // delay(1000);
+
+    // arm.grab();
+
+    // delay(1000);
+
+    // arm.armUp();
+    // delay(1000);
     
     }
