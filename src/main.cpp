@@ -1,18 +1,18 @@
 #include <Arduino.h>
 #include <QTRSensors.h>
-#include <Wire.h>
 #include <Variables.h>
 #include <MotorDriver.h>
 #include <PID.h>
 #include <SensorPanel.h>
 #include <Arm.h>
+#include <Wire.h>
+#include <VL53L0X.h>
 
+VL53L0X lox;
 SensorPanel qtr(const_cast<uint8_t *>((const uint8_t[]) {33, 34, 35, 36, 37, 38, 39, 40, 42, 43, 44, 45, 46, 47, 48, 49}));
 MotorDriver driver;
 PID pid;
 Arm arm;
-
-void calibrate();
 
 void goStraight(){
 
@@ -25,22 +25,27 @@ void goStraight(){
 
 void calibrate(){
     
-  digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(LED_BUILTIN, HIGH);
 
-  driver.turnLeft(150,150);
-  for (uint16_t i = 0; i < 50; i++){
+    driver.turnLeft(150,150);
+    for (uint16_t i = 0; i < 50; i++){
     qtr.calibrate();
-  }
+    }
 
-  driver.turnRight(150,150);
+    driver.turnRight(150,150);
 
-  for (uint16_t i = 0; i < 50; i++){
+    for (uint16_t i = 0; i < 50; i++){
     qtr.calibrate();
-  }
+    }
 
-  digitalWrite(LED_BUILTIN, LOW);
-  driver.stop();
+    digitalWrite(LED_BUILTIN, LOW);
+    driver.stop();
 
+    while(lox.readRangeContinuousMillimeters() > 60){
+
+    }
+
+    delay(500);
 
   // qtr.calibrate();
   // for (int i = 0; i < SensorCount; i++){
@@ -48,47 +53,6 @@ void calibrate(){
   //     qtr.calibrationOn.maximum[i] = 2500;
   // }
   
-}
-
-void cellStart(){
-    encoderLeftCount = 0;
-    encoderRightCount = 0;
-    leftEncoder = 0;
-    rightEncoder = 0;
-
-    encoderRightCount = encoderRightCount + 200;
-    encoderLeftCount = encoderLeftCount + 200;
-
-    while (rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
-        int dif = leftEncoder - encoderLeftCount + 200;
-        rightBase = (rightBase - 20) + int(dif/(200/20));
-        leftBase = (leftBase - 20) + int(dif/(200/20));
-        goStraight();
-    }
-
-}
-
-void cellBrake(){
-
-    encoderLeftCount = 0;
-    encoderRightCount = 0;
-    leftEncoder = 0;
-    rightEncoder = 0;
-    
-    encoderRightCount = encoderRightCount + 150;
-    encoderLeftCount = encoderLeftCount + 150;
-
-    while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
-        int dif = leftEncoder - encoderLeftCount + 150;
-        rightBase = rightBase - int(dif/7.5);
-        leftBase = leftBase - int(dif/7.5);
-        goStraight();
-
-    }
-    leftBase = 95;
-    rightBase = 95;
-    driver.stop();
-    
 }
 
 void pushForward(int distance){
@@ -104,6 +68,7 @@ void pushForward(int distance){
         goStraight();
 
     }
+    driver.stop();
 
 }
 
@@ -168,6 +133,49 @@ void turnBack(){
 
 }
 
+void grabBox(){
+
+    encoderLeftCount = 0;
+    encoderRightCount = 0;
+    leftEncoder = 0;
+    rightEncoder = 0;
+
+    int startDistance;
+    if(lox.readRangeContinuousMillimeters() <= 100){
+        driver.stop();
+        startDistance = lox.readRangeContinuousMillimeters();
+        Serial.println(startDistance);
+    }else{
+        return;
+    }
+
+    delay(1000);
+
+    arm.attachArm();
+    arm.attachGripper();
+
+    arm.spreadGripper();
+    arm.armDown();
+
+    delay(500);
+
+    int pushDistance = (4.4 * startDistance) - (leftEncoder);
+    pushForward(pushDistance);
+
+    delay(500);
+
+    arm.grab();
+    delay(500);
+    arm.armUp();
+    delay(1000);
+
+    arm.detachGripper();
+    arm.detachArm();
+
+    delay(1000);
+
+}
+
 void countLeftOut1(){
     leftEncoder += 1;
 }
@@ -213,8 +221,6 @@ void botSetup(){
     pinMode(53,OUTPUT);
 
     calibrate();
-    driver.stop();
-    delay(3000);
 
     driver.forward(190, 170);
     delay(200);
@@ -230,15 +236,47 @@ void botSetup(){
     arm.detachGripper();
 }
 
+void loxSetup(){
+
+    delay(50);
+    Wire.begin();
+
+    lox.setTimeout(500);
+    if (!lox.init())
+    {
+    while (1) {}
+    }
+
+    lox.startContinuous();
+}
+
 void botLoop() {
 
     while (true) {
+        
+        grabBox();
         qtr.read();
 
         if (qtr.pattern == 1) {
             int correction = pid.getLineCorrection(qtr.error);
             driver.applyLinePid(correction * -1);
-        } else {
+
+        }else if(qtr.isEnd){
+            while(true){
+                qtr.readWhite();
+
+                if (qtr.pattern == 1) { //pid
+                    int correction = pid.getLineCorrection(qtr.error);
+                    driver.applyLinePid(correction * -1);
+                }else{
+                    driver.stop();
+                    delay(99999999999);
+                }
+
+            }
+
+
+        }else{
             char pattern = qtr.pattern;
             bool left = pattern == 'L';
             bool right = pattern == 'R';
@@ -353,29 +391,17 @@ void botLoop() {
 }
 
 void setup(){
-
+    
+    loxSetup();
     botSetup();
     
 }
 
 void loop(){
 
-    while(!qtr.isEnd){
-        botLoop();
-    }
-    
-    while(true){
-        qtr.readWhite();
+    //botLoop();
 
-        if (qtr.pattern == 1) { 
-            int correction = pid.getLineCorrection(qtr.error);
-            driver.applyLinePid(correction * -1);
-        }else{
-            driver.stop();
-            delay(99999999999);
-        }
-
-    }
+     Serial.println(lox.readRangeContinuousMillimeters());
 
     // arm.attachArm();
     // arm.armDown();
