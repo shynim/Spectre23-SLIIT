@@ -14,6 +14,20 @@ MotorDriver driver;
 PID pid;
 Arm arm;
 
+void loxSetup(){
+
+    delay(50);
+    Wire.begin();
+
+    lox.setTimeout(500);
+    if (!lox.init())
+    {
+    while (1) {}
+    }
+
+    lox.startContinuous();
+}
+
 void goStraight(){
 
     int errEncoder = leftEncoder - rightEncoder;
@@ -163,16 +177,10 @@ void straightenStart() {
     }
 }
 
-void grabBox(){
-
-    encoderLeftCount = 0;
-    encoderRightCount = 0;
-    leftEncoder = 0;
-    rightEncoder = 0;
+int grabCube(){
 
     int startDistance;
     if(lox.readRangeContinuousMillimeters() <= 250){
-        driver.stop();
         startDistance = lox.readRangeContinuousMillimeters();
     }else{
         return;
@@ -188,7 +196,7 @@ void grabBox(){
 
     delay(500);
 
-    int pushDistance = (4.4 * startDistance) - (leftEncoder);
+    int pushDistance = (4.4 * startDistance);
     pushForward(pushDistance);
 
     delay(500);
@@ -203,6 +211,23 @@ void grabBox(){
 
     delay(1000);
 
+    return pushDistance;
+
+}
+
+void placeCube(){
+
+
+}
+
+char goThroughSquare(){
+
+    int remainingDistance = grabCube();
+    char colour = getColour();
+    pushForward(1200 - remainingDistance);
+
+    return colour;
+
 }
 
 void countLeftOut1(){
@@ -212,79 +237,10 @@ void countRightOut1(){
     rightEncoder += 1;
 }
 
-void botSetup(){
-
-    arm.init(6, 7);
-    driver.init(const_cast<int *>(leftPins), const_cast<int *>(rightPins));
-
-    pinMode(leftEncoderPins[0], INPUT);
-    pinMode(leftEncoderPins[1], INPUT);
-    pinMode(rightEncoderPins[0], INPUT);
-    pinMode(rightEncoderPins[1], INPUT);
-
-    pinMode(buzzer,OUTPUT);
-
-    attachInterrupt(digitalPinToInterrupt(leftEncoderPins[0]), countLeftOut1, RISING);
-    attachInterrupt(digitalPinToInterrupt(leftEncoderPins[1]), countLeftOut1, RISING);
-    attachInterrupt(digitalPinToInterrupt(rightEncoderPins[0]), countRightOut1, RISING);
-    attachInterrupt(digitalPinToInterrupt(rightEncoderPins[1]), countRightOut1, RISING);
-
-    pinMode(S0, OUTPUT);
-    pinMode(S1, OUTPUT);
-    pinMode(S2, OUTPUT);
-    pinMode(S3, OUTPUT);
-    
-    pinMode(sensorOut, INPUT);
-    
-    digitalWrite(S0,HIGH);
-    digitalWrite(S1,LOW);
-
-    pinMode(red,OUTPUT);
-    pinMode(green,OUTPUT);
-    pinMode(blue,OUTPUT);
-
-    pinMode(LED_BUILTIN,OUTPUT);
-
-    Serial.begin(9600);
-
-    pinMode(53,OUTPUT);
-
-    calibrate();
-
-    driver.forward(190, 170);
-    delay(200);
-    driver.stop();
-
-    arm.attachGripper();
-    arm.attachArm();
-
-    arm.writeArm(140);
-    arm.writeGripper(110);
-
-    arm.detachArm();
-    arm.detachGripper();
-}
-
-void loxSetup(){
-
-    delay(50);
-    Wire.begin();
-
-    lox.setTimeout(500);
-    if (!lox.init())
-    {
-    while (1) {}
-    }
-
-    lox.startContinuous();
-}
-
-void botLoop() {
-
+void solveMaze(){
     while (true) {
         
         qtr.read();
-
         if (qtr.pattern == 1) {
             int correction = pid.getLineCorrection(qtr.error);
             driver.applyLinePid(correction * -1);
@@ -394,9 +350,7 @@ void botLoop() {
             char newPattern = qtr.pattern;
 
             if(newPattern == 'T'){
-                straightenStart();
-                driver.stop();
-                grabBox();
+                break;
             }
 
             switch (pattern) {
@@ -426,9 +380,229 @@ void botLoop() {
     }
 }
 
+void goToEnd(char colour){
+    while (true) {
+        
+        qtr.read();
+        if (qtr.pattern == 1) {
+            int correction = pid.getLineCorrection(qtr.error);
+            driver.applyLinePid(correction * -1);
+
+        }else if(qtr.isEnd){
+            while(true){
+                qtr.readWhite();
+
+                if (qtr.pattern == 1) { //pid
+                    int correction = pid.getLineCorrection(qtr.error);
+                    driver.applyLinePid(correction * -1);
+                }else{
+                    driver.stop();
+                    break;
+                }
+
+            }
+            break;
+
+        }else{
+            char pattern = qtr.pattern;
+
+            bool left = pattern == 'L';
+            bool right = pattern == 'R';
+            bool t = pattern == 'T';
+
+            bool yLeft = false;
+            bool yRight = false;
+
+            int pushDistance = 100 - (leftEncoder - tempLeftEncoder);
+
+            encoderLeftCount = 0;
+            encoderRightCount = 0;
+            leftEncoder = 0;
+            rightEncoder = 0;
+            
+            encoderRightCount = encoderRightCount + 90;
+            encoderLeftCount = encoderLeftCount + 90;
+
+            int tCount = 0;
+            while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
+                
+                goStraight();
+
+                qtr.read();
+                
+                if (qtr.pattern == 'L') {
+                    left = true; 
+                } else if (qtr.pattern == 'R') {
+                    right = true;
+                } else if (qtr.pattern == 'T') {
+                    t = true;
+                    tCount++;
+                }
+
+                for(int i = 0; i <= 5; i++){
+                    if(qtr.panelReading[i] == 1){
+                        yRight = true;
+                    }
+                    if(qtr.panelReading[15 - i] == 1){
+                        yLeft = true;
+                    
+                    }
+                }
+            }
+            
+            qtr.read();
+            if(qtr.isEnd){
+            
+                while(true){
+                    qtr.readWhite();
+                    if (qtr.pattern == 1) { //pid
+                        int correction = pid.getLineCorrection(qtr.error);
+                        driver.applyLinePid(correction * -1);
+                    }else{ 
+                        driver.stop();
+                        break;
+                    }
+
+                }
+                break;
+            }
+
+            encoderLeftCount = 0;
+            encoderRightCount = 0;
+            leftEncoder = 0;
+            rightEncoder = 0;
+            
+            encoderRightCount = encoderRightCount + pushDistance;
+            encoderLeftCount = encoderLeftCount + pushDistance;
+
+            while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
+                goStraight();
+            }
+
+            if (t || (left && right) || (left && yRight) || (yLeft && right) || (yLeft && yRight)) {
+                pattern = 'T';
+            } else if (left || yLeft) {
+                pattern = 'L';
+            } else if (right || yRight) {
+                pattern = 'R';
+            } else {
+                pattern = 0;
+            }
+            driver.stop();
+            
+            qtr.read();
+            char newPattern = qtr.pattern;
+
+            if(newPattern == 'T'){
+                break;
+            }
+
+            switch (pattern) {
+                case 'L':
+                    turnLeftTillMiddle();
+                    break;
+
+                case 'R':
+                    if (newPattern == 1) {
+                        
+                    } else {
+                        turnRightTillMiddle();
+                    }
+                    break;
+
+                case 'T':
+                    if(colour == 'R'){
+                        turnLeftTillMiddle();
+                        break;
+                    }else{
+                        turnRightTillMiddle();
+                        break;
+                    }
+
+                default:
+                    turnBack();
+                    break;
+            }
+            driver.stop();
+
+        }
+    }
+}
+
+void returnToPickupSquare(){
+
+
+}
+
+void botSetup(){
+
+    loxSetup();
+
+    arm.init(6, 7);
+    driver.init(const_cast<int *>(leftPins), const_cast<int *>(rightPins));
+
+    pinMode(leftEncoderPins[0], INPUT);
+    pinMode(leftEncoderPins[1], INPUT);
+    pinMode(rightEncoderPins[0], INPUT);
+    pinMode(rightEncoderPins[1], INPUT);
+
+    pinMode(buzzer,OUTPUT);
+
+    attachInterrupt(digitalPinToInterrupt(leftEncoderPins[0]), countLeftOut1, RISING);
+    attachInterrupt(digitalPinToInterrupt(leftEncoderPins[1]), countLeftOut1, RISING);
+    attachInterrupt(digitalPinToInterrupt(rightEncoderPins[0]), countRightOut1, RISING);
+    attachInterrupt(digitalPinToInterrupt(rightEncoderPins[1]), countRightOut1, RISING);
+
+    pinMode(S0, OUTPUT);
+    pinMode(S1, OUTPUT);
+    pinMode(S2, OUTPUT);
+    pinMode(S3, OUTPUT);
+    
+    pinMode(sensorOut, INPUT);
+    
+    digitalWrite(S0,HIGH);
+    digitalWrite(S1,LOW);
+
+    pinMode(red,OUTPUT);
+    pinMode(green,OUTPUT);
+    pinMode(blue,OUTPUT);
+
+    pinMode(LED_BUILTIN,OUTPUT);
+
+    Serial.begin(9600);
+
+    pinMode(53,OUTPUT);
+
+    calibrate();
+
+    driver.forward(190, 170);
+    delay(200);
+    driver.stop();
+
+    arm.attachGripper();
+    arm.attachArm();
+
+    arm.writeArm(140);
+    arm.writeGripper(110);
+
+    arm.detachArm();
+    arm.detachGripper();
+}
+
+void botLoop() {
+
+    solveMaze();
+    straightenStart();
+    char colour = goThroughSquare();
+    goToEnd(colour);
+    placeCube();
+
+    returnToPickupSquare();
+    
+}
+
 void setup(){
     
-    loxSetup();
     botSetup();
     
 }
