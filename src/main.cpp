@@ -133,6 +133,36 @@ void turnBack(){
 
 }
 
+void straightenStart() {
+    int reverseSpeed = 130;
+    int leftSensor = 15, rightSensor = 0;
+    qtr.read();
+    const int limit = 100;
+    while (qtr.panelReading[leftSensor] || qtr.panelReading[rightSensor]) {
+        int count = 0;
+        qtr.read();
+        while (qtr.panelReading[leftSensor]) {
+            driver.reverseLeft(reverseSpeed);
+            qtr.read();
+            if (count++ >= limit) {
+                break;
+            }
+        }
+        driver.stop();
+
+        count = 0;
+        qtr.read();
+        while (qtr.panelReading[rightSensor]) {
+            driver.reverseRight(reverseSpeed);
+            qtr.read();
+            if (count++ >= limit) {
+                break;
+            }
+        }
+        driver.stop();
+    }
+}
+
 void grabBox(){
 
     encoderLeftCount = 0;
@@ -141,10 +171,9 @@ void grabBox(){
     rightEncoder = 0;
 
     int startDistance;
-    if(lox.readRangeContinuousMillimeters() <= 100){
+    if(lox.readRangeContinuousMillimeters() <= 250){
         driver.stop();
         startDistance = lox.readRangeContinuousMillimeters();
-        Serial.println(startDistance);
     }else{
         return;
     }
@@ -254,7 +283,6 @@ void botLoop() {
 
     while (true) {
         
-        grabBox();
         qtr.read();
 
         if (qtr.pattern == 1) {
@@ -278,6 +306,7 @@ void botLoop() {
 
         }else{
             char pattern = qtr.pattern;
+
             bool left = pattern == 'L';
             bool right = pattern == 'R';
             bool t = pattern == 'T';
@@ -321,15 +350,16 @@ void botLoop() {
                     }
                 }
             }
-
+            
+            qtr.read();
             if(qtr.isEnd){
+            
                 while(true){
                     qtr.readWhite();
-
                     if (qtr.pattern == 1) { //pid
                         int correction = pid.getLineCorrection(qtr.error);
                         driver.applyLinePid(correction * -1);
-                    }else{
+                    }else{ 
                         driver.stop();
                         delay(99999999999);
                     }
@@ -362,6 +392,12 @@ void botLoop() {
             
             qtr.read();
             char newPattern = qtr.pattern;
+
+            if(newPattern == 'T'){
+                straightenStart();
+                driver.stop();
+                grabBox();
+            }
 
             switch (pattern) {
                 case 'L':
@@ -399,9 +435,9 @@ void setup(){
 
 void loop(){
 
-    //botLoop();
+    botLoop();
 
-     Serial.println(lox.readRangeContinuousMillimeters());
+    //Serial.println(lox.readRangeContinuousMillimeters());
 
     // arm.attachArm();
     // arm.armDown();

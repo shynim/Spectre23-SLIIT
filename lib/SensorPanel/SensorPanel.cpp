@@ -24,7 +24,7 @@ uint16_t SensorPanel::readLine(uint16_t *sensorValues) {
 }
 
 uint16_t SensorPanel::readLineWhite(uint16_t *sensorValues) {
-    return SensorPanel::qtr.readLineBlack(sensorValues);
+    return SensorPanel::qtr.readLineWhite(sensorValues);
 }
 
 void SensorPanel::read() {
@@ -41,7 +41,7 @@ void SensorPanel::read() {
 }
 
 void SensorPanel::readWhite(){
-    SensorPanel::position = SensorPanel::readLine(panelReading);
+    SensorPanel::position = SensorPanel::readLineWhite(panelReading);
 
     error = (int) position - 8000;
 
