@@ -1,12 +1,12 @@
 #include <Arduino.h>
 #include <Variables.h>
  
-int redMin = 29; // Red minimum value
-int redMax = 200; // Red maximum value
-int greenMin = 28; // Green minimum value
-int greenMax = 207; // Green maximum value
-int blueMin = 23; // Blue minimum value
-int blueMax = 170; // Blue maximum value
+int redMin = 14; // Red minimum value
+int redMax = 120; // Red maximum value
+int greenMin = 15; // Green minimum value
+int greenMax = 150; // Green maximum value
+int blueMin = 13; // Blue minimum value
+int blueMax = 120; // Blue maximum value
  
 int redPW = 0;
 int greenPW = 0;
@@ -52,17 +52,15 @@ int getBluePW() {
  
 }
 
-int getColour(){
+char getColour(){
   
-    getRedPW();
-    getGreenPW();
-    getBluePW();
+  getRedPW();
+  getGreenPW();
+  getBluePW();
 
-    if(redValue > 150 && greenValue > 150 && blueValue > 150){
-        return 0;
-    }else if(redValue > 150 && greenValue < 150 && blueValue < 150){
-        return 1;
-    }else{
-        return -1;
-    }
+  if(redValue > 150 && greenValue < 150 && blueValue < 150){
+    return 'R';
+  }else{
+    return 'B';
+  }
 }

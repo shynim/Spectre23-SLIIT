@@ -129,7 +129,7 @@ void MotorDriver::applyEncoderPid(int correction){
     int leftSpeed = abs(leftBase) + correction;
     int rightSpeed = abs(rightBase) - correction;
 
-    leftBase >= 0 ? forward(leftSpeed, rightSpeed) : backward(rightSpeed, leftSpeed);
+    leftBase >= 0 ? forward(leftSpeed, rightSpeed) : backward(leftSpeed, rightSpeed);
 }
 
 void MotorDriver::applyLinePid(int correction){

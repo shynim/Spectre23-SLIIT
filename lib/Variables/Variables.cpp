@@ -5,16 +5,16 @@ const int setPoint = 8000;
 const int SensorCount = 16;
 
 //LED
-const int red = 36;
-const int blue = 37;
-const int green = 38;
+const int red = 50;
+const int blue = 51;
+const int green = 52;
 
 //colourSensor
-const int S0 = 48;
-const int S1 = 49;
-const int S2 = 50;
-const int S3 = 51;
-const int sensorOut = 52;
+const int S0 = 26;
+const int S1 = 27;
+const int S2 = 28;
+const int S3 = 29;
+const int sensorOut = 31;
 
 //motorDriver
 const int leftPins[] = {4, 22, 23};

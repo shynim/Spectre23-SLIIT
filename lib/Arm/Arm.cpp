@@ -31,7 +31,7 @@ void Arm::writeGripper(int angle){
 }
 
 void Arm::spreadGripper(){
-    gripper.write(80);
+    gripper.write(60);
 }
 
 void Arm::grab(){
@@ -39,7 +39,7 @@ void Arm::grab(){
 }
 
 void Arm::armUp(){
-    arm.write(150);
+    arm.write(140);
 }
 
 void Arm::armDown(){

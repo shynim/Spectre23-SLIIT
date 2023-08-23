@@ -7,6 +7,7 @@
 #include <Arm.h>
 #include <Wire.h>
 #include <VL53L0X.h>
+#include <Colour.h>
 
 VL53L0X lox;
 SensorPanel qtr(const_cast<uint8_t *>((const uint8_t[]) {33, 34, 35, 36, 37, 38, 39, 40, 42, 43, 44, 45, 46, 47, 48, 49}));
@@ -26,6 +27,34 @@ void loxSetup(){
     }
 
     lox.startContinuous();
+}
+
+void buzz(){
+    digitalWrite(buzzer, HIGH);
+    delay(200);
+    digitalWrite(buzzer, LOW);
+    delay(200);
+}
+
+void lightRed(){
+    digitalWrite(red,HIGH);
+    digitalWrite(green,LOW);
+    digitalWrite(blue,LOW);
+}
+void lightGreen(){
+    digitalWrite(red,LOW);
+    digitalWrite(green,HIGH);
+    digitalWrite(blue,LOW);
+}
+void lightBlue(){
+    digitalWrite(red,LOW);
+    digitalWrite(green,LOW);
+    digitalWrite(blue,HIGH);
+}
+void lightOff(){
+    digitalWrite(red,LOW);
+    digitalWrite(green,LOW);
+    digitalWrite(blue,LOW);
 }
 
 void goStraight(){
@@ -86,7 +115,36 @@ void pushForward(int distance){
 
 }
 
+void pushBackward(int distance){
+    encoderLeftCount = 0;
+    encoderRightCount = 0;
+    leftEncoder = 0;
+    rightEncoder = 0;
+    
+    rightBase = rightBase * -1;
+    leftBase = leftBase * -1;
+
+    encoderRightCount = encoderRightCount + distance;
+    encoderLeftCount = encoderLeftCount + distance;
+
+    while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
+        goStraight();
+
+    }
+    driver.stop();
+    rightBase = rightBase * -1;
+    leftBase = leftBase * -1;
+
+}
+
 void turnRightTillMiddle(){
+    qtr.read();
+    if(qtr.panelReading[5] == 1){
+        while(qtr.panelReading[5] == 1){
+            driver.turnRight(leftBase,rightBase);
+            qtr.read();
+        }
+    }
     qtr.read();
     while(qtr.panelReading[5] != 1){
         driver.turnRight(leftBase,rightBase);
@@ -95,6 +153,13 @@ void turnRightTillMiddle(){
 }
 
 void turnLeftTillMiddle(){
+    qtr.read();
+    if(qtr.panelReading[10] == 1){
+        while(qtr.panelReading[10] == 1){
+            driver.turnLeft(leftBase,rightBase);
+            qtr.read();
+        }
+    }
     qtr.read();
     while(qtr.panelReading[10] != 1){
         driver.turnLeft(leftBase,rightBase);
@@ -148,7 +213,7 @@ void turnBack(){
 }
 
 void straightenStart() {
-    int reverseSpeed = 130;
+    int reverseSpeed = 140;
     int leftSensor = 15, rightSensor = 0;
     qtr.read();
     const int limit = 100;
@@ -216,16 +281,54 @@ int grabCube(){
 }
 
 void placeCube(){
+    arm.attachArm();
+    arm.attachGripper();
+
+    arm.grab();
+    delay(250);
+    arm.armDown();
+    delay(500);
+
+    arm.spreadGripper();
+    delay(250);
+
+    pushBackward(200);
+
+    arm.armUp();
+    arm.grab();
+    delay(1000);
+
+    arm.detachGripper();
+    arm.detachArm();
+
+    delay(1000);
 
 
 }
 
 char goThroughSquare(){
 
-    int remainingDistance = grabCube();
-    char colour = getColour();
-    pushForward(1200 - remainingDistance);
+    int remainingDistance = 1400 - grabCube();
+    int colourCount = 0;
 
+    for(int i = 0; i < 100; i++){
+        if(getColour() == 'B'){
+            colourCount++;
+        }else if(getColour() == 'R'){
+            colourCount--;
+        }
+    }
+
+    char colour;
+    colour = colourCount > 0 ? 'B' : 'R';
+    if(colour == 'B'){
+        lightBlue();
+    }else{
+        lightRed();
+    }
+
+    pushForward(remainingDistance);
+ 
     return colour;
 
 }
@@ -245,21 +348,6 @@ void solveMaze(){
             int correction = pid.getLineCorrection(qtr.error);
             driver.applyLinePid(correction * -1);
 
-        }else if(qtr.isEnd){
-            while(true){
-                qtr.readWhite();
-
-                if (qtr.pattern == 1) { //pid
-                    int correction = pid.getLineCorrection(qtr.error);
-                    driver.applyLinePid(correction * -1);
-                }else{
-                    driver.stop();
-                    delay(99999999999);
-                }
-
-            }
-
-
         }else{
             char pattern = qtr.pattern;
 
@@ -277,8 +365,8 @@ void solveMaze(){
             leftEncoder = 0;
             rightEncoder = 0;
             
-            encoderRightCount = encoderRightCount + 90;
-            encoderLeftCount = encoderLeftCount + 90;
+            encoderRightCount = encoderRightCount + 100;
+            encoderLeftCount = encoderLeftCount + 100;
 
             int tCount = 0;
             while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
@@ -307,22 +395,6 @@ void solveMaze(){
                 }
             }
             
-            qtr.read();
-            if(qtr.isEnd){
-            
-                while(true){
-                    qtr.readWhite();
-                    if (qtr.pattern == 1) { //pid
-                        int correction = pid.getLineCorrection(qtr.error);
-                        driver.applyLinePid(correction * -1);
-                    }else{ 
-                        driver.stop();
-                        delay(99999999999);
-                    }
-
-                }
-            }
-
             encoderLeftCount = 0;
             encoderRightCount = 0;
             leftEncoder = 0;
@@ -397,11 +469,152 @@ void goToEnd(char colour){
                     driver.applyLinePid(correction * -1);
                 }else{
                     driver.stop();
-                    break;
+                    return;
                 }
 
             }
-            break;
+
+        }else{
+            char pattern = qtr.pattern;
+
+            bool left = pattern == 'L';
+            bool right = pattern == 'R';
+            bool t = pattern == 'T';
+
+            bool yLeft = false;
+            bool yRight = false;
+
+            int pushDistance = 100 - (leftEncoder - tempLeftEncoder);
+
+            encoderLeftCount = 0;
+            encoderRightCount = 0;
+            leftEncoder = 0;
+            rightEncoder = 0;
+            
+            encoderRightCount = encoderRightCount + 100;
+            encoderLeftCount = encoderLeftCount + 100;
+
+            int tCount = 0;
+            while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
+                
+                goStraight();
+
+                qtr.read();
+                
+                if (qtr.pattern == 'L') {
+                    left = true; 
+                } else if (qtr.pattern == 'R') {
+                    right = true;
+                } else if (qtr.pattern == 'T') {
+                    t = true;
+                    tCount++;
+                }
+
+                for(int i = 0; i <= 5; i++){
+                    if(qtr.panelReading[i] == 1){
+                        yRight = true;
+                    }
+                    if(qtr.panelReading[15 - i] == 1){
+                        yLeft = true;
+                    
+                    }
+                }
+            }
+            
+            qtr.read();
+            if(qtr.isEnd){
+            
+                while(true){
+                    qtr.readWhite();
+                    if (qtr.pattern == 1) { //pid
+                        int correction = pid.getLineCorrection(qtr.error);
+                        driver.applyLinePid(correction * -1);
+                    }else{ 
+                        driver.stop();
+                        return;
+                    }
+
+                }
+            }
+
+            encoderLeftCount = 0;
+            encoderRightCount = 0;
+            leftEncoder = 0;
+            rightEncoder = 0;
+            
+            encoderRightCount = encoderRightCount + pushDistance;
+            encoderLeftCount = encoderLeftCount + pushDistance;
+
+            while(rightEncoder <= encoderRightCount || leftEncoder <= encoderLeftCount){
+                goStraight();
+            }
+
+            if (t || (left && right) || (left && yRight) || (yLeft && right) || (yLeft && yRight)) {
+                pattern = 'T';
+            } else if (left || yLeft ) {
+                pattern = 'L';
+            } else if (right || yRight) {
+                pattern = 'R';
+            } else {
+                pattern = 0;
+            }
+            driver.stop();
+            
+            qtr.read();
+            char newPattern = qtr.pattern;
+
+            switch (pattern) {
+                case 'L':
+                    if (newPattern == 1) {
+                        if(colour == 'R'){
+                            turnLeftTillMiddle();
+                        }else{
+
+                        }
+                    } else {
+                        turnLeftTillMiddle();
+                    }
+                    break;
+
+                case 'R':
+                    if (newPattern == 1) {
+                        if(colour == 'B'){
+                            turnRightTillMiddle();
+                        }else{
+
+                        }
+                    } else {
+                        turnRightTillMiddle();
+                    }
+                    break;
+
+                case 'T':
+                    if(colour == 'R'){
+                        turnLeftTillMiddle();
+                    }else{
+                        turnRightTillMiddle();
+                    }
+                    break;
+
+                default:
+                    turnBack();
+                    break;
+            }
+            driver.stop();
+
+        }
+    }
+}
+
+void returnToPickupSquare(char colour){
+    turnBack();
+
+    while (true) {
+        
+        qtr.read();
+        if (qtr.pattern == 1) {
+            int correction = pid.getLineCorrection(qtr.error);
+            driver.applyLinePid(correction * -1);
 
         }else{
             char pattern = qtr.pattern;
@@ -450,23 +663,6 @@ void goToEnd(char colour){
                 }
             }
             
-            qtr.read();
-            if(qtr.isEnd){
-            
-                while(true){
-                    qtr.readWhite();
-                    if (qtr.pattern == 1) { //pid
-                        int correction = pid.getLineCorrection(qtr.error);
-                        driver.applyLinePid(correction * -1);
-                    }else{ 
-                        driver.stop();
-                        break;
-                    }
-
-                }
-                break;
-            }
-
             encoderLeftCount = 0;
             encoderRightCount = 0;
             leftEncoder = 0;
@@ -481,7 +677,7 @@ void goToEnd(char colour){
 
             if (t || (left && right) || (left && yRight) || (yLeft && right) || (yLeft && yRight)) {
                 pattern = 'T';
-            } else if (left || yLeft) {
+            } else if (left || yLeft ) {
                 pattern = 'L';
             } else if (right || yRight) {
                 pattern = 'R';
@@ -494,30 +690,43 @@ void goToEnd(char colour){
             char newPattern = qtr.pattern;
 
             if(newPattern == 'T'){
-                break;
+                straightenStart();
+                pushForward(800);
+                return;
             }
 
             switch (pattern) {
                 case 'L':
-                    turnLeftTillMiddle();
+                    if (newPattern == 1) {
+                        if(colour == 'B'){
+                            turnLeftTillMiddle();
+                        }else{
+
+                        }
+                    } else {
+                        turnLeftTillMiddle();
+                    }
                     break;
 
                 case 'R':
                     if (newPattern == 1) {
-                        
+                        if(colour == 'R'){
+                            turnRightTillMiddle();
+                        }else{
+
+                        }
                     } else {
                         turnRightTillMiddle();
                     }
                     break;
 
                 case 'T':
-                    if(colour == 'R'){
+                    if(colour == 'B'){
                         turnLeftTillMiddle();
-                        break;
                     }else{
                         turnRightTillMiddle();
-                        break;
                     }
+                    break;
 
                 default:
                     turnBack();
@@ -527,9 +736,7 @@ void goToEnd(char colour){
 
         }
     }
-}
 
-void returnToPickupSquare(){
 
 
 }
@@ -594,10 +801,17 @@ void botLoop() {
     solveMaze();
     straightenStart();
     char colour = goThroughSquare();
+
+    rightBase = 140;
+    leftBase = 150;
+
     goToEnd(colour);
     placeCube();
 
-    returnToPickupSquare();
+    returnToPickupSquare(colour);
+
+    driver.stop();
+    delay(999999);
     
 }
 
@@ -609,8 +823,66 @@ void setup(){
 
 void loop(){
 
-    botLoop();
+    // qtr.readWhite();
+    // Serial.println(qtr.position);
 
+    // int colourCount = 0;
+
+    // for(int i = 0; i < 100; i++){
+    //     if(getColour() == 'B'){
+    //         colourCount++;
+    //     }else if(getColour() == 'R'){
+    //         colourCount--;
+    //     }
+    // }
+
+    // char colour;
+    // colour = colourCount > 0 ? 'B' : 'R';
+
+    // if(colour == 'B'){
+    //     lightBlue();
+    // }else if(colour == 'R'){
+    //     lightRed();
+    // }
+
+
+    // getRedPW();
+    // getGreenPW();
+    // getBluePW();
+
+    // Serial.print(redValue);
+    // Serial.print(" ");
+    // Serial.print(blueValue);
+    // Serial.print(" ");
+    // Serial.println(greenValue);
+
+
+    // digitalWrite(S2,LOW);
+    // digitalWrite(S3,LOW);
+
+    // int PW;
+    // PW = pulseIn(sensorOut, LOW);
+    // Serial.print(PW);
+    // Serial.print(" ");
+
+    // digitalWrite(S2,HIGH);
+    // digitalWrite(S3,HIGH);
+
+    // PW = pulseIn(sensorOut, LOW);
+    // Serial.print(PW);
+    // Serial.print(" ");
+
+    // digitalWrite(S2,LOW);
+    // digitalWrite(S3,HIGH);
+
+    // PW = pulseIn(sensorOut, LOW);
+    // Serial.print(PW);
+    // Serial.println();
+
+ 
+
+
+    botLoop();
     //Serial.println(lox.readRangeContinuousMillimeters());
 
     // arm.attachArm();
@@ -630,4 +902,4 @@ void loop(){
     // arm.armUp();
     // delay(1000);
     
-    }
+}
