@@ -138,13 +138,13 @@ void pushBackward(int distance){
 }
 
 void turnRightTillMiddle(){
+
     qtr.read();
-    if(qtr.panelReading[5] == 1){
-        while(qtr.panelReading[5] == 1){
-            driver.turnRight(leftBase,rightBase);
-            qtr.read();
-        }
+    while(qtr.panelReading[5] == 1){
+        driver.turnRight(leftBase,rightBase);
+        qtr.read();
     }
+    
     qtr.read();
     while(qtr.panelReading[5] != 1){
         driver.turnRight(leftBase,rightBase);
@@ -153,13 +153,13 @@ void turnRightTillMiddle(){
 }
 
 void turnLeftTillMiddle(){
+    
     qtr.read();
-    if(qtr.panelReading[10] == 1){
-        while(qtr.panelReading[10] == 1){
-            driver.turnLeft(leftBase,rightBase);
-            qtr.read();
-        }
+    while(qtr.panelReading[10] == 1){
+        driver.turnLeft(leftBase,rightBase);
+        qtr.read();
     }
+
     qtr.read();
     while(qtr.panelReading[10] != 1){
         driver.turnLeft(leftBase,rightBase);
@@ -240,97 +240,6 @@ void straightenStart() {
         }
         driver.stop();
     }
-}
-
-int grabCube(){
-
-    int startDistance;
-    if(lox.readRangeContinuousMillimeters() <= 250){
-        startDistance = lox.readRangeContinuousMillimeters();
-    }else{
-        return;
-    }
-
-    delay(1000);
-
-    arm.attachArm();
-    arm.attachGripper();
-
-    arm.spreadGripper();
-    arm.armDown();
-
-    delay(500);
-
-    int pushDistance = (4.4 * startDistance);
-    pushForward(pushDistance);
-
-    delay(500);
-
-    arm.grab();
-    delay(500);
-    arm.armUp();
-    delay(1000);
-
-    arm.detachGripper();
-    arm.detachArm();
-
-    delay(1000);
-
-    return pushDistance;
-
-}
-
-void placeCube(){
-    arm.attachArm();
-    arm.attachGripper();
-
-    arm.grab();
-    delay(250);
-    arm.armDown();
-    delay(500);
-
-    arm.spreadGripper();
-    delay(250);
-
-    pushBackward(200);
-
-    arm.armUp();
-    arm.grab();
-    delay(1000);
-
-    arm.detachGripper();
-    arm.detachArm();
-
-    delay(1000);
-
-
-}
-
-char goThroughSquare(){
-
-    int remainingDistance = 1400 - grabCube();
-    int colourCount = 0;
-
-    for(int i = 0; i < 100; i++){
-        if(getColour() == 'B'){
-            colourCount++;
-        }else if(getColour() == 'R'){
-            colourCount--;
-        }
-    }
-
-    char colour;
-    colour = colourCount > 0 ? 'B' : 'R';
-    if(colour == 'B'){
-        lightBlue();
-    }else{
-        lightRed();
-    }
-
-    pushForward(remainingDistance);
- 
-    return colour;
-
 }
 
 void countLeftOut1(){
@@ -451,6 +360,72 @@ void solveMaze(){
         }
     }
 }
+
+int grabCube(){
+
+    int startDistance;
+    if(lox.readRangeContinuousMillimeters() <= 250){
+        startDistance = lox.readRangeContinuousMillimeters();
+    }else{
+        return;
+    }
+
+    delay(1000);
+
+    arm.attachArm();
+    arm.attachGripper();
+
+    arm.spreadGripper();
+    arm.armDown();
+
+    delay(500);
+
+    int pushDistance = (4.4 * startDistance);
+    pushForward(pushDistance);
+
+    delay(500);
+
+    arm.grab();
+    delay(500);
+    arm.armUp();
+    delay(1000);
+
+    arm.detachGripper();
+    arm.detachArm();
+
+    delay(1000);
+
+    return pushDistance;
+
+}
+
+char goThroughSquare(){
+
+    int remainingDistance = 1400 - grabCube();
+    int colourCount = 0;
+
+    for(int i = 0; i < 100; i++){
+        if(getColour() == 'B'){
+            colourCount++;
+        }else if(getColour() == 'R'){
+            colourCount--;
+        }
+    }
+
+    char colour;
+    colour = colourCount > 0 ? 'B' : 'R';
+    if(colour == 'B'){
+        lightBlue();
+    }else{
+        lightRed();
+    }
+
+    pushForward(remainingDistance);
+ 
+    return colour;
+
+}
+
 
 void goToEnd(char colour){
     while (true) {
@@ -604,6 +579,32 @@ void goToEnd(char colour){
 
         }
     }
+}
+
+void placeCube(){
+    arm.attachArm();
+    arm.attachGripper();
+
+    arm.grab();
+    delay(250);
+    arm.armDown();
+    delay(500);
+
+    arm.spreadGripper();
+    delay(250);
+
+    pushBackward(200);
+
+    arm.armUp();
+    arm.grab();
+    delay(1000);
+
+    arm.detachGripper();
+    arm.detachArm();
+
+    delay(1000);
+
+
 }
 
 void returnToPickupSquare(char colour){
@@ -782,9 +783,7 @@ void botSetup(){
 
     calibrate();
 
-    driver.forward(190, 170);
-    delay(200);
-    driver.stop();
+    pushForward(80);
 
     arm.attachGripper();
     arm.attachArm();
@@ -808,10 +807,13 @@ void botLoop() {
     goToEnd(colour);
     placeCube();
 
+    rightBase = 130;
+    leftBase = 140;
+
     returnToPickupSquare(colour);
 
     driver.stop();
-    delay(999999);
+    delay(99999999);
     
 }
 
