@@ -590,14 +590,17 @@ void placeCube(){
     arm.armDown();
     delay(500);
 
+    pushBackward(100);
+
     arm.spreadGripper();
     delay(250);
 
-    pushBackward(200);
+    pushBackward(100);
 
     arm.armUp();
+    delay(500);
     arm.grab();
-    delay(1000);
+    delay(500);
 
     arm.detachGripper();
     arm.detachArm();
@@ -885,6 +888,9 @@ void loop(){
 
 
     botLoop();
+
+
+
     //Serial.println(lox.readRangeContinuousMillimeters());
 
     // arm.attachArm();
