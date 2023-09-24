@@ -370,8 +370,6 @@ int grabCube(){
         return;
     }
 
-    delay(1000);
-
     arm.attachArm();
     arm.attachGripper();
 
@@ -604,9 +602,6 @@ void placeCube(){
 
     arm.detachGripper();
     arm.detachArm();
-
-    delay(1000);
-
 
 }
 
